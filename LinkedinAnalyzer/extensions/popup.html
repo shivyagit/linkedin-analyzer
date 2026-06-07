@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LinkedIn Job Analyzer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Sora:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="jspdf.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f0f4ff;
+      --surface: #ffffff;
+      --surface2: #f8f9ff;
+      --border: #e2e8f0;
+      --accent: #4f46e5;
+      --accent-light: #ede9fe;
+      --accent2: #0ea5e9;
+      --accent2-light: #e0f2fe;
+      --green: #10b981;
+      --green-light: #d1fae5;
+      --red: #ef4444;
+      --red-light: #fee2e2;
+      --orange: #f59e0b;
+      --orange-light: #fef3c7;
+      --text: #1e293b;
+      --text2: #475569;
+      --muted: #94a3b8;
+      --recruiter: #0ea5e9;
+      --recruiter-light: #e0f2fe;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 480px; min-height: 300px; max-height: 680px;
+      overflow-y: auto; background: var(--bg);
+      color: var(--text); font-family: 'Inter', sans-serif;
+      font-size: 14px; line-height: 1.5;
+    }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Header ── */
+    .header {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      padding: 16px 20px; display: flex; align-items: center; gap: 12px;
+    }
+    .logo {
+      width: 38px; height: 38px; background: rgba(255,255,255,0.2);
+      border-radius: 10px; display: flex; align-items: center;
+      justify-content: center; font-size: 20px; flex-shrink: 0;
+    }
+    .header-text h1 { font-family: 'Sora', sans-serif; font-size: 17px; font-weight: 700; color: #fff; }
+    .header-text p { font-size: 12px; color: rgba(255,255,255,0.75); margin-top: 1px; }
+
+    .body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── Error ── */
+    .error-box {
+      background: var(--red-light); border: 1px solid #fca5a5;
+      border-radius: 10px; padding: 11px 14px; font-size: 13px;
+      color: #b91c1c; display: none;
+    }
+    .error-box.visible { display: block; }
+
+    /* ══════════════════════════════════════
+       ROLE SELECTION SCREEN
+    ══════════════════════════════════════ */
+    #role-screen { display: flex; flex-direction: column; gap: 16px; }
+    .role-title {
+      text-align: center; font-family: 'Sora', sans-serif;
+      font-size: 18px; font-weight: 700; color: var(--text);
+    }
+    .role-title span { color: var(--accent); }
+    .role-subtitle { text-align: center; font-size: 13px; color: var(--muted); margin-top: -8px; }
+
+    .role-cards { display: flex; gap: 14px; }
+    .role-card {
+      flex: 1; background: var(--surface);
+      border: 2px solid var(--border); border-radius: 14px;
+      padding: 22px 16px; text-align: center; cursor: pointer;
+      transition: all 0.25s;
+    }
+    .role-card:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: 0 6px 20px rgba(79,70,229,0.15); }
+    .role-card.recruiter:hover { border-color: var(--recruiter); box-shadow: 0 6px 20px rgba(14,165,233,0.15); }
+    .role-card-icon { font-size: 34px; margin-bottom: 10px; }
+    .role-card-title { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; color: var(--text); margin-bottom: 5px; }
+    .role-card-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+    /* ══════════════════════════════════════
+       RECRUITER MODE SELECTION
+    ══════════════════════════════════════ */
+    #recruiter-mode-screen { display: none; flex-direction: column; gap: 14px; }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted); cursor: pointer;
+      background: none; border: none; padding: 0;
+      transition: color 0.2s;
+    }
+    .back-btn:hover { color: var(--accent); }
+
+    .mode-title { font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); }
+    .mode-subtitle { font-size: 12px; color: var(--muted); margin-top: -6px; }
+
+    .mode-cards { display: flex; gap: 12px; }
+    .mode-card {
+      flex: 1; background: var(--surface);
+      border: 2px solid var(--border); border-radius: 12px;
+      padding: 18px 14px; text-align: center; cursor: pointer;
+      transition: all 0.25s;
+    }
+    .mode-card:hover { border-color: var(--recruiter); transform: translateY(-2px); box-shadow: 0 4px 15px rgba(14,165,233,0.15); }
+    .mode-card-icon { font-size: 28px; margin-bottom: 8px; }
+    .mode-card-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .mode-card-desc { font-size: 11px; color: var(--muted); line-height: 1.5; }
+
+    /* ══════════════════════════════════════
+       SHARED CARD STYLES
+    ══════════════════════════════════════ */
+    .card {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .card-label {
+      font-size: 10px; font-weight: 600; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 10px;
+    }
+
+    /* ── Job detect (applicant) ── */
+    .job-detect-row { display: flex; align-items: center; gap: 10px; }
+    .status-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--muted); flex-shrink: 0; transition: all 0.3s;
+    }
+    .status-dot.active { background: var(--green); box-shadow: 0 0 0 3px var(--green-light); }
+    .status-dot.error { background: var(--red); box-shadow: 0 0 0 3px var(--red-light); }
+    .detect-text { flex: 1; font-size: 13px; color: var(--text2); }
+    .detect-text.found { color: var(--text); font-weight: 500; }
+    #btn-detect {
+      font-size: 12px; font-weight: 600; padding: 7px 14px; border-radius: 8px;
+      border: 1.5px solid var(--accent); background: var(--accent-light);
+      color: var(--accent); cursor: pointer; transition: all 0.2s; white-space: nowrap;
+    }
+    #btn-detect:hover { background: var(--accent); color: white; }
+    .job-meta {
+      display: none; margin-top: 10px; padding: 8px 12px;
+      background: var(--surface2); border-radius: 8px;
+      font-size: 12px; color: var(--text2); line-height: 1.6;
+    }
+    .job-meta strong { color: var(--text); font-size: 13px; }
+
+    /* ── Upload zone ── */
+    .upload-zone {
+      border: 2px dashed var(--border); border-radius: 12px;
+      padding: 20px 16px; text-align: center; cursor: pointer;
+      transition: all 0.25s; background: var(--surface);
+      position: relative; overflow: hidden;
+    }
+    .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent2); background: var(--accent2-light); }
+    .upload-zone.has-file { border-color: var(--green); border-style: solid; background: var(--green-light); }
+    .upload-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+    .upload-icon { font-size: 28px; margin-bottom: 7px; }
+    .upload-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 3px; }
+    .upload-hint { font-size: 12px; color: var(--muted); }
+    .file-pill {
+      display: inline-flex; align-items: center; gap: 7px;
+      background: white; border: 1px solid var(--green);
+      border-radius: 20px; padding: 5px 12px; margin-top: 10px;
+    }
+    .file-pill-name { font-size: 12px; color: var(--green); font-weight: 600; max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-pill-remove { font-size: 14px; color: var(--muted); cursor: pointer; transition: color 0.2s; line-height: 1; }
+    .file-pill-remove:hover { color: var(--red); }
+
+    /* ── JD textarea (recruiter) ── */
+    .jd-textarea {
+      width: 100%; min-height: 100px; padding: 10px 12px;
+      border: 1.5px solid var(--border); border-radius: 10px;
+      font-family: 'Inter', sans-serif; font-size: 12px;
+      color: var(--text); background: var(--surface);
+      resize: vertical; transition: border-color 0.2s;
+      outline: none;
+    }
+    .jd-textarea:focus { border-color: var(--recruiter); }
+
+    /* ── Multi-resume list ── */
+    .resume-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+    .resume-entry {
+      display: flex; align-items: center; gap: 8px;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 8px; padding: 8px 12px;
+    }
+    .resume-entry-num {
+      width: 22px; height: 22px; border-radius: 50%;
+      background: var(--recruiter-light); color: var(--recruiter);
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .resume-entry-name {
+      flex: 1; font-size: 12px; font-weight: 500; color: var(--text);
+      overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    }
+    .resume-entry-remove {
+      font-size: 14px; color: var(--muted); cursor: pointer;
+      transition: color 0.2s; flex-shrink: 0;
+    }
+    .resume-entry-remove:hover { color: var(--red); }
+
+    .add-more-btn {
+      width: 100%; padding: 8px; border-radius: 8px;
+      border: 1.5px dashed var(--border); background: transparent;
+      color: var(--recruiter); font-size: 12px; font-weight: 600;
+      cursor: pointer; transition: all 0.2s; margin-top: 6px;
+    }
+    .add-more-btn:hover { border-color: var(--recruiter); background: var(--recruiter-light); }
+
+    /* ── Name input ── */
+    .name-input {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid var(--border); border-radius: 8px;
+      font-family: 'Inter', sans-serif; font-size: 13px;
+      color: var(--text); background: var(--surface);
+      outline: none; transition: border-color 0.2s;
+    }
+    .name-input:focus { border-color: var(--recruiter); }
+
+    /* ── Analyze buttons ── */
+    #btn-analyze, #btn-recruiter-analyze-single, #btn-recruiter-analyze-multi {
+      width: 100%; padding: 13px;
+      border: none; border-radius: 12px; color: white;
+      font-family: 'Sora', sans-serif; font-weight: 700; font-size: 14px;
+      cursor: pointer; transition: all 0.25s;
+    }
+    #btn-analyze {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      box-shadow: 0 4px 15px rgba(79,70,229,0.3);
+    }
+    #btn-recruiter-analyze-single, #btn-recruiter-analyze-multi {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      box-shadow: 0 4px 15px rgba(14,165,233,0.3);
+    }
+    #btn-analyze:hover:not(:disabled),
+    #btn-recruiter-analyze-single:hover:not(:disabled),
+    #btn-recruiter-analyze-multi:hover:not(:disabled) { transform: translateY(-1px); }
+    #btn-analyze:disabled,
+    #btn-recruiter-analyze-single:disabled,
+    #btn-recruiter-analyze-multi:disabled { opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none; }
+    .btn-inner { display: flex; align-items: center; justify-content: center; gap: 7px; }
+
+    /* ── Loading ── */
+    .loading-section { display: none; text-align: center; padding: 30px 0 10px; }
+    .loading-section.visible { display: block; }
+    .spinner {
+      width: 40px; height: 40px; margin: 0 auto 14px;
+      border: 3px solid var(--border); border-top-color: var(--accent);
+      border-radius: 50%; animation: spin 0.8s linear infinite;
+    }
+    .spinner.recruiter-spin { border-top-color: var(--recruiter); }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+    .loading-step { font-size: 12px; color: var(--muted); }
+
+    /* ══════════════════════════════════════
+       APPLICANT RESULTS (unchanged styles)
+    ══════════════════════════════════════ */
+    .results-section { display: none; flex-direction: column; gap: 14px; }
+    .results-section.visible { display: flex; }
+    .job-banner {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      border-radius: 12px; padding: 14px 16px; color: white;
+    }
+    .job-banner-role { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+    .job-banner-company { font-size: 12px; opacity: 0.85; }
+    .score-card {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 18px 16px;
+      display: flex; align-items: center; gap: 18px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .score-ring-wrap { position: relative; width: 80px; height: 80px; flex-shrink: 0; }
+    .score-ring-wrap svg { transform: rotate(-90deg); }
+    .score-ring-bg { fill: none; stroke: var(--border); stroke-width: 6; }
+    .score-ring-fill { fill: none; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1.4s cubic-bezier(0.4,0,0.2,1); }
+    .score-number {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      font-family: 'Sora', sans-serif; font-size: 22px; font-weight: 700;
+      color: var(--text); line-height: 1;
+    }
+    .score-number span { font-size: 10px; font-weight: 500; color: var(--muted); }
+    .score-label { font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 700; margin-bottom: 5px; }
+    .score-sublabel { font-size: 13px; color: var(--text2); line-height: 1.5; }
+    .section-card {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    }
+    .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .section-title { font-size: 13px; font-weight: 700; color: var(--text); }
+    .section-badge { margin-left: auto; font-size: 11px; font-weight: 600; padding: 2px 9px; border-radius: 20px; }
+    .badge-green { background: var(--green-light); color: #059669; }
+    .badge-red { background: var(--red-light); color: #dc2626; }
+    .skills-grid { display: flex; flex-wrap: wrap; gap: 7px; }
+    .skill-tag {
+      font-size: 12px; font-weight: 500; padding: 4px 11px; border-radius: 6px;
+      opacity: 0; transform: translateY(5px); animation: fadeup 0.3s forwards;
+    }
+    .skill-tag.matched { background: var(--green-light); color: #065f46; border: 1px solid #6ee7b7; }
+    .skill-tag.missing { background: var(--red-light); color: #991b1b; border: 1px solid #fca5a5; }
+    @keyframes fadeup { to { opacity: 1; transform: translateY(0); } }
+    .pitch-box {
+      background: var(--surface2); border-left: 4px solid var(--accent);
+      border-radius: 0 10px 10px 0; padding: 12px 14px;
+      font-size: 13px; color: var(--text2); line-height: 1.8; font-style: italic;
+    }
+    .copy-btn {
+      margin-top: 10px; font-size: 11px; font-weight: 600;
+      padding: 6px 13px; border-radius: 7px; border: 1.5px solid var(--border);
+      background: white; color: var(--text2); cursor: pointer; transition: all 0.2s;
+    }
+    .copy-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+    .tip-list { display: flex; flex-direction: column; gap: 8px; }
+    .tip-item {
+      display: flex; gap: 10px; align-items: flex-start;
+      font-size: 13px; color: var(--text2); line-height: 1.6;
+      padding: 8px 10px; background: var(--surface2); border-radius: 8px;
+    }
+    .tip-num {
+      width: 20px; height: 20px; border-radius: 50%;
+      background: var(--orange-light); color: #92400e;
+      font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; margin-top: 1px;
+    }
+    .reset-row { display: flex; justify-content: center; padding-bottom: 4px; }
+    .reset-btn {
+      font-size: 12px; font-weight: 600; padding: 8px 20px; border-radius: 8px;
+      border: 1.5px solid var(--border); background: white; color: var(--text2);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .reset-btn:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+    /* ── Download btn ── */
+    #btn-download {
+      width: 100%; padding: 10px; border-radius: 10px;
+      border: 1.5px solid var(--border); background: white;
+      color: var(--text2); font-family: 'Inter', sans-serif;
+      font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    #btn-download:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-light); }
+
+    /* ══════════════════════════════════════
+       RECRUITER RESULTS
+    ══════════════════════════════════════ */
+    #recruiter-results-section { display: none; flex-direction: column; gap: 14px; }
+    #recruiter-results-section.visible { display: flex; }
+
+    .recruiter-banner {
+      background: linear-gradient(135deg, #0ea5e9, #0284c7);
+      border-radius: 12px; padding: 14px 16px; color: white;
+    }
+    .recruiter-banner-title { font-family: 'Sora', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+    .recruiter-banner-sub { font-size: 12px; opacity: 0.85; }
+
+    /* Single candidate result */
+    .single-candidate-result { display: flex; flex-direction: column; gap: 12px; }
+
+    /* Recommendation badge */
+    .rec-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px; border-radius: 20px;
+      font-size: 13px; font-weight: 700;
+    }
+    .rec-badge.interview { background: #d1fae5; color: #065f46; border: 1.5px solid #6ee7b7; }
+    .rec-badge.consider { background: #fef3c7; color: #92400e; border: 1.5px solid #fcd34d; }
+    .rec-badge.reject { background: #fee2e2; color: #991b1b; border: 1.5px solid #fca5a5; }
+
+    /* Multi candidate ranking */
+    .candidates-list { display: flex; flex-direction: column; gap: 10px; }
+    .candidate-card {
+      background: var(--surface); border: 1.5px solid var(--border);
+      border-radius: 12px; padding: 14px 16px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+      cursor: pointer; transition: all 0.2s;
+    }
+    .candidate-card:hover { border-color: var(--recruiter); }
+    .candidate-card.expanded { border-color: var(--recruiter); }
+    .candidate-header { display: flex; align-items: center; gap: 10px; }
+    .candidate-rank {
+      width: 28px; height: 28px; border-radius: 50%;
+      background: var(--recruiter-light); color: var(--recruiter);
+      font-size: 13px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .candidate-rank.rank-1 { background: #fef3c7; color: #92400e; }
+    .candidate-rank.rank-2 { background: #f1f5f9; color: #475569; }
+    .candidate-rank.rank-3 { background: #fef3c7; color: #78350f; }
+    .candidate-name { font-size: 14px; font-weight: 700; color: var(--text); flex: 1; }
+    .candidate-score {
+      font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700;
+    }
+    .candidate-rec { margin-left: 8px; }
+    .candidate-reason { font-size: 11px; color: var(--muted); margin-top: 4px; padding-left: 38px; }
+    .candidate-details {
+      display: none; margin-top: 12px; padding-top: 12px;
+      border-top: 1px solid var(--border); flex-direction: column; gap: 10px;
+    }
+    .candidate-details.open { display: flex; }
+    .candidate-details .skills-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+    .candidate-details .skill-tag { font-size: 11px; padding: 3px 9px; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="logo">🎯</div>
+    <div class="header-text">
+      <h1>Job Fit Analyzer</h1>
+      <p>LinkedIn × Resume Intelligence</p>
+    </div>
+  </div>
+
+  <div class="body">
+    <div class="error-box" id="error-box"></div>
+
+    <!-- ══════════════════════════════════
+         SCREEN 1: ROLE SELECTION
+    ══════════════════════════════════ -->
+    <div id="role-screen">
+      <div class="role-title">Who are you? </div>
+      <div class="role-subtitle">Choose your role to get started</div>
+      <div class="role-cards">
+        <div class="role-card" id="btn-role-applicant">
+          <div class="role-card-icon"></div>
+          <div class="role-card-title">Applicant</div>
+          <div class="role-card-desc">Match your resume against a LinkedIn job posting and get your fit score</div>
+        </div>
+        <div class="role-card recruiter" id="btn-role-recruiter">
+          <div class="role-card-icon"></div>
+          <div class="role-card-title">Recruiter</div>
+          <div class="role-card-desc">Analyze one or multiple candidates against a job description</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         SCREEN 2: RECRUITER MODE SELECT
+    ══════════════════════════════════ -->
+    <div id="recruiter-mode-screen">
+      <button class="back-btn" id="btn-back-to-roles">← Back</button>
+      <div class="mode-title">Recruiter Mode</div>
+      <div class="mode-subtitle">How many candidates are you evaluating?</div>
+      <div class="mode-cards">
+        <div class="mode-card" id="btn-mode-single">
+          <div class="mode-card-icon"></div>
+          <div class="mode-card-title">Single Candidate</div>
+          <div class="mode-card-desc">Analyze one resume against your job description</div>
+        </div>
+        <div class="mode-card" id="btn-mode-multi">
+          <div class="mode-card-icon"></div>
+          <div class="mode-card-title">Compare Multiple</div>
+          <div class="mode-card-desc">Upload several resumes and get a ranked leaderboard</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         SCREEN 3A: APPLICANT INPUT
+    ══════════════════════════════════ -->
+    <div id="input-section" style="display:none; flex-direction:column; gap:14px;">
+
+      <div class="card">
+        <div class="card-label">Step 1 — LinkedIn Job</div>
+        <div class="job-detect-row">
+          <div class="status-dot" id="detect-status"></div>
+          <div class="detect-text" id="detect-text">Open a LinkedIn job posting, then click Detect</div>
+          <button id="btn-detect">Detect</button>
+        </div>
+        <div class="job-meta" id="job-detail"></div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:6px;">
+        <div class="card-label" style="padding:0 2px;">Step 2 — Upload Resume</div>
+        <div class="upload-zone" id="upload-zone">
+          <input type="file" id="resume-file" accept=".pdf" />
+          <div id="upload-default">
+            <div class="upload-icon"></div>
+            <div class="upload-title">Drop your resume PDF here</div>
+            <div class="upload-hint">or click to browse files</div>
+          </div>
+          <div id="upload-info" style="display:none;">
+            <div class="upload-icon"></div>
+            <div class="upload-title" style="color:#059669">Resume uploaded!</div>
+            <div class="file-pill">
+              <span class="file-pill-name" id="file-name"></span>
+              <span class="file-pill-remove" id="remove-file">✕</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button id="btn-analyze" disabled>
+        <div class="btn-inner"><span>Analyze My Job Fit</span></div>
+      </button>
+    </div>
+
+    <!-- ══════════════════════════════════
+         SCREEN 3B: RECRUITER SINGLE INPUT
+    ══════════════════════════════════ -->
+    <div id="recruiter-single-section" style="display:none; flex-direction:column; gap:14px;">
+  <button class="back-btn" id="btn-back-to-mode-from-single">← Back</button>
+
+  <div class="card">
+    <div class="card-label">Step 1 — Candidate Name</div>
+    <input type="text" class="name-input" id="single-candidate-name" placeholder="e.g. Aditi Sharma" />
+  </div>
+
+  <div class="card">
+    <div class="card-label">Step 2 — Job Description</div>
+
+    <!-- 🔥 NEW BUTTON -->
+    <button id="btn-detect-recruiter-single"
+      style="margin-bottom:10px;padding:8px;border-radius:8px;border:1px solid #0ea5e9;background:#e0f2fe;color:#0284c7;font-weight:600;">
+      Detect from LinkedIn
+    </button>
+
+    <textarea class="jd-textarea" id="single-jd"
+      placeholder="Paste the full job description here..."></textarea>
+
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <input type="text" class="name-input" id="single-job-title"
+        placeholder="Job Title" style="flex:1;" />
+      <input type="text" class="name-input" id="single-company"
+        placeholder="Company" style="flex:1;" />
+    </div>
+  </div>
+
+  <div style="display:flex; flex-direction:column; gap:6px;">
+    <div class="card-label" style="padding:0 2px;">Step 3 — Upload Resume</div>
+
+    <div class="upload-zone" id="recruiter-single-upload-zone">
+      <input type="file" id="recruiter-single-resume" accept=".pdf" />
+
+      <div id="recruiter-single-upload-default">
+        <div class="upload-title">Drop candidate resume here</div>
+        <div class="upload-hint">PDF only</div>
+      </div>
+
+      <div id="recruiter-single-upload-info" style="display:none;">
+        <div class="upload-title" style="color:#059669">Resume uploaded!</div>
+        <div class="file-pill">
+          <span id="recruiter-single-file-name"></span>
+          <span id="recruiter-single-remove">✕</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <button id="btn-recruiter-analyze-single" disabled>
+    Analyze Candidate
+  </button>
+</div>
+
+    <!-- ══════════════════════════════════
+         SCREEN 3C: RECRUITER MULTI INPUT
+    ══════════════════════════════════ -->
+    <div id="recruiter-multi-section" style="display:none; flex-direction:column; gap:14px;">
+  <button class="back-btn" id="btn-back-to-mode-from-multi">← Back</button>
+
+  <div class="card">
+    <div class="card-label">Step 1 — Job Description</div>
+
+    <!-- 🔥 NEW BUTTON -->
+    <button id="btn-detect-recruiter-multi"
+      style="margin-bottom:10px;padding:8px;border-radius:8px;border:1px solid #0ea5e9;background:#e0f2fe;color:#0284c7;font-weight:600;">
+      Detect from LinkedIn
+    </button>
+
+    <textarea class="jd-textarea" id="multi-jd"
+      placeholder="Paste the full job description here..."></textarea>
+
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <input type="text" class="name-input" id="multi-job-title"
+        placeholder="Job Title" style="flex:1;" />
+      <input type="text" class="name-input" id="multi-company"
+        placeholder="Company" style="flex:1;" />
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Step 2 — Upload Candidate Resumes</div>
+    <div id="multi-resume-list"></div>
+    <button id="btn-add-candidate">+ Add Candidate</button>
+    <input type="file" id="multi-resume-input" accept=".pdf" style="display:none;" />
+  </div>
+
+  <button id="btn-recruiter-analyze-multi" disabled>
+    Compare All Candidates
+  </button>
+</div>
+
+    <!-- ══════════════════════════════════
+         LOADING
+    ══════════════════════════════════ -->
+    <div class="loading-section" id="loading-section">
+      <div class="spinner" id="loading-spinner"></div>
+      <div class="loading-title" id="loading-title">Analyzing...</div>
+      <div class="loading-step" id="loading-step">Please wait</div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         APPLICANT RESULTS (unchanged)
+    ══════════════════════════════════ -->
+    <div class="results-section" id="results-section">
+      <div class="job-banner" id="job-banner" style="display:none">
+        <div class="job-banner-role" id="banner-role">—</div>
+        <div class="job-banner-company" id="banner-company">—</div>
+      </div>
+      <div class="score-card">
+        <div class="score-ring-wrap">
+          <svg width="80" height="80" viewBox="0 0 80 80">
+            <circle class="score-ring-bg" cx="40" cy="40" r="34"/>
+            <circle class="score-ring-fill" id="score-ring" cx="40" cy="40" r="34"
+              stroke-dasharray="213.6" stroke-dashoffset="213.6"/>
+          </svg>
+          <div class="score-number" id="score-number">0<span>%</span></div>
+        </div>
+        <div class="score-info">
+          <div class="score-label" id="score-label">—</div>
+          <div class="score-sublabel" id="score-sublabel"></div>
+        </div>
+      </div>
+      <div class="section-card" id="matched-skills-card" style="display:none">
+        <div class="section-header">
+          <span class="section-title">Matched Skills</span>
+          <span class="section-badge badge-green" id="matched-count">0</span>
+        </div>
+        <div class="skills-grid" id="matched-skills"></div>
+      </div>
+      <div class="section-card" id="missing-skills-card" style="display:none">
+        <div class="section-header">
+          <span class="section-title">Skills to Highlight / Gain</span>
+          <span class="section-badge badge-red" id="missing-count">0</span>
+        </div>
+        <div class="skills-grid" id="missing-skills"></div>
+      </div>
+      <div class="section-card" id="pitch-card" style="display:none">
+        <div class="section-header">
+          <span class="section-title">Your Elevator Pitch</span>
+        </div>
+        <div class="pitch-box" id="pitch-text"></div>
+        <button class="copy-btn" id="copy-pitch">⎘ Copy pitch</button>
+      </div>
+      <div class="section-card" id="tips-card" style="display:none">
+        <div class="section-header">
+          <span class="section-title">Application Tips</span>
+        </div>
+        <div class="tip-list" id="tips-list"></div>
+      </div>
+      <button id="btn-download">⬇ Download Report as PDF</button>
+      <div class="reset-row">
+        <button class="reset-btn" id="btn-reset">↺ Analyze Another Job</button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════
+         RECRUITER RESULTS
+    ══════════════════════════════════ -->
+    <div id="recruiter-results-section">
+      <div class="recruiter-banner" id="recruiter-banner">
+        <div class="recruiter-banner-title" id="recruiter-banner-title">Analysis Complete</div>
+        <div class="recruiter-banner-sub" id="recruiter-banner-sub"></div>
+      </div>
+
+      <!-- Single candidate result -->
+      <div id="single-result-container" style="display:none;">
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-title" id="single-result-name">Candidate</span>
+            <span id="single-result-score" class="section-badge badge-green">0%</span>
+          </div>
+          <div style="margin-bottom:10px;">
+            <span class="rec-badge" id="single-rec-badge">—</span>
+          </div>
+          <div style="font-size:12px; color:var(--muted); margin-bottom:12px;" id="single-rec-reason"></div>
+          <div id="single-matched-card" style="display:none; margin-bottom:10px;">
+            <div style="font-size:11px; font-weight:700; color:#059669; margin-bottom:6px;">✅ Matched Skills</div>
+            <div class="skills-grid" id="single-matched-skills"></div>
+          </div>
+          <div id="single-missing-card" style="display:none;">
+            <div style="font-size:11px; font-weight:700; color:#dc2626; margin-bottom:6px;">🎯 Missing Skills</div>
+            <div class="skills-grid" id="single-missing-skills"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Multi candidate result -->
+      <div id="multi-result-container" style="display:none;">
+        <div class="section-card">
+          <div class="section-header">
+            <span class="section-title">Candidate Rankings</span>
+            <span class="section-badge" id="multi-count" style="background:var(--recruiter-light);color:var(--recruiter);">0</span>
+          </div>
+          <div class="candidates-list" id="candidates-list"></div>
+        </div>
+      </div>
+
+      <div class="reset-row">
+        <button class="reset-btn" id="btn-recruiter-reset">↺ New Analysis</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
