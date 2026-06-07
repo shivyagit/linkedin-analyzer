@@ -30,5 +30,5 @@ An AI-powered Chrome extension that helps job seekers and recruiters make smarte
 3. Load the `LinkedinAnalyzer/extensions` folder in Chrome via Developer Mode
 
 ## Live Deployment
-- Backend: https://linkedin-backend-1n66.onrender.com
+- Backend: deployed on Render
 - ML Model: deployed on Render
